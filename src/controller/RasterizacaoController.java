@@ -7,7 +7,6 @@ import model.RetaAnalitica;
 import model.RetaBresenham;
 import model.RetaDDA;
 import view.Principal;
-import java.util.Random;
 
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -18,6 +17,8 @@ import java.util.Random;
 public class RasterizacaoController {
 
     private Principal principal;
+
+    private Random random = new Random();
 
     private String algoritmoSelecionado;
 
