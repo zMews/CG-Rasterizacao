@@ -16,6 +16,7 @@ public class Principal extends JFrame {
 
     private JLabel mensagem;
     private JButton botaoLimpar;
+    private JMenuItem itemVarredura;
 
     public Principal() {
 
@@ -85,6 +86,14 @@ public class Principal extends JFrame {
         barraMenu.add(botaoLimpar);
 
         setJMenuBar(barraMenu);
+
+        JMenu menuPoligonos = new JMenu("Polígonos");
+
+        itemVarredura = new JMenuItem("Varredura");
+
+        menuPoligonos.add(itemVarredura);
+
+        menuPrimitivas.add(menuPoligonos);
     }
 
     public Painel getPainel() {
@@ -113,5 +122,9 @@ public class Principal extends JFrame {
 
     public void setMensagem(String texto) {
         mensagem.setText(texto);
+    }
+
+    public JMenuItem getItemVarredura() {
+    return itemVarredura;
     }
 }

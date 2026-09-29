@@ -1,6 +1,7 @@
 package controller;
 
 import model.CirculoBresenham;
+import model.PoligonoVarredura;
 import model.Ponto;
 import model.Rasterizacao;
 import model.RetaAnalitica;
@@ -8,11 +9,14 @@ import model.RetaBresenham;
 import model.RetaDDA;
 import view.Principal;
 
+import java.awt.Color;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.List;
-import java.awt.Color;
 import java.util.Random;
+
+import javax.swing.JOptionPane;
 
 public class RasterizacaoController {
 
@@ -23,6 +27,10 @@ public class RasterizacaoController {
     private String algoritmoSelecionado;
 
     private Ponto primeiroPonto;
+
+    private List<Ponto> pontosPoligono = new ArrayList<>();
+
+    private int quantidadePontosPoligono;
 
     public RasterizacaoController(Principal principal) {
 
@@ -37,6 +45,7 @@ public class RasterizacaoController {
 
             algoritmoSelecionado = "ANALITICO";
             primeiroPonto = null;
+            pontosPoligono.clear();
 
             principal.setMensagem(
                 "Algoritmo Analítico selecionado - clique no primeiro ponto."
@@ -47,6 +56,7 @@ public class RasterizacaoController {
 
             algoritmoSelecionado = "DDA";
             primeiroPonto = null;
+            pontosPoligono.clear();
 
             principal.setMensagem(
                 "Algoritmo DDA selecionado - clique no primeiro ponto."
@@ -57,6 +67,7 @@ public class RasterizacaoController {
 
             algoritmoSelecionado = "BRESENHAM_RETA";
             primeiroPonto = null;
+            pontosPoligono.clear();
 
             principal.setMensagem(
                 "Bresenham para reta selecionado - clique no primeiro ponto."
@@ -67,29 +78,89 @@ public class RasterizacaoController {
 
             algoritmoSelecionado = "BRESENHAM_CIRCULO";
             primeiroPonto = null;
+            pontosPoligono.clear();
 
             principal.setMensagem(
                 "Bresenham para circunferência selecionado - clique no centro."
             );
         });
 
+        principal.getItemVarredura().addActionListener(e -> {
+
+            String entrada = JOptionPane.showInputDialog(
+                principal,
+                "Informe a quantidade de pontos do polígono:",
+                "Polígono - Varredura",
+                JOptionPane.QUESTION_MESSAGE
+            );
+
+            if (entrada == null) {
+                return;
+            }
+
+            try {
+
+                int quantidade = Integer.parseInt(entrada);
+
+                if (quantidade < 3) {
+
+                    JOptionPane.showMessageDialog(
+                        principal,
+                        "O polígono deve possuir pelo menos 3 pontos."
+                    );
+
+                    return;
+                }
+
+                algoritmoSelecionado = "POLIGONO_VARREDURA";
+                quantidadePontosPoligono = quantidade;
+
+                primeiroPonto = null;
+                pontosPoligono.clear();
+
+                principal.setMensagem(
+                    "Varredura selecionada - clique no ponto 1 de "
+                    + quantidadePontosPoligono + "."
+                );
+
+            } catch (NumberFormatException ex) {
+
+                JOptionPane.showMessageDialog(
+                    principal,
+                    "Digite um número inteiro válido."
+                );
+            }
+        });
+
         principal.getBotaoLimpar().addActionListener(e -> {
 
             principal.getPainel().limpar();
+
             primeiroPonto = null;
+            pontosPoligono.clear();
 
             if (algoritmoSelecionado == null) {
+
                 principal.setMensagem(
                     "Tela limpa - selecione um algoritmo."
                 );
 
             } else if (algoritmoSelecionado.equals("BRESENHAM_CIRCULO")) {
+
                 principal.setMensagem(
                     "Tela limpa - " + nomeAlgoritmo() +
                     " selecionado. Clique no centro."
                 );
 
+            } else if (algoritmoSelecionado.equals("POLIGONO_VARREDURA")) {
+
+                principal.setMensagem(
+                    "Tela limpa - Varredura selecionada. Clique no ponto 1 de "
+                    + quantidadePontosPoligono + "."
+                );
+
             } else {
+
                 principal.setMensagem(
                     "Tela limpa - " + nomeAlgoritmo() +
                     " selecionado. Clique no primeiro ponto."
@@ -110,7 +181,6 @@ public class RasterizacaoController {
         });
     }
 
-
     private void tratarClique(int x, int y) {
 
         if (algoritmoSelecionado == null) {
@@ -122,8 +192,14 @@ public class RasterizacaoController {
             return;
         }
 
-        Ponto pontoAtual = new Ponto(x, y);
+        if (algoritmoSelecionado.equals("POLIGONO_VARREDURA")) {
 
+            tratarCliquePoligono(x, y);
+
+            return;
+        }
+
+        Ponto pontoAtual = new Ponto(x, y);
 
         if (primeiroPonto == null) {
 
@@ -150,7 +226,6 @@ public class RasterizacaoController {
             return;
         }
 
-
         if (algoritmoSelecionado.equals("BRESENHAM_CIRCULO")) {
 
             desenharCirculo(
@@ -174,6 +249,86 @@ public class RasterizacaoController {
         );
     }
 
+    private void tratarCliquePoligono(int x, int y) {
+
+        pontosPoligono.add(
+            new Ponto(x, y)
+        );
+
+        int quantidadeAtual = pontosPoligono.size();
+
+        if (quantidadeAtual < quantidadePontosPoligono) {
+
+            principal.setMensagem(
+                "Varredura - ponto " +
+                quantidadeAtual +
+                " definido. Clique no ponto " +
+                (quantidadeAtual + 1) +
+                " de " +
+                quantidadePontosPoligono +
+                "."
+            );
+
+            return;
+        }
+
+        desenharPoligonoVarredura();
+
+        pontosPoligono.clear();
+
+        principal.setMensagem(
+            "Polígono preenchido por Varredura - clique no ponto 1 de "
+            + quantidadePontosPoligono +
+            " para desenhar outro."
+        );
+    }
+
+    private void desenharPoligonoVarredura() {
+
+        Color cor = gerarCorAleatoria();
+
+        PoligonoVarredura algoritmo =
+            new PoligonoVarredura();
+
+        List<Ponto> pixels =
+            algoritmo.preencher(
+                pontosPoligono
+            );
+
+        principal
+            .getPainel()
+            .desenharPixels(
+                pixels,
+                cor
+            );
+
+        RetaBresenham bresenham =
+            new RetaBresenham();
+
+        for (int i = 0; i < pontosPoligono.size(); i++) {
+
+            Ponto inicio =
+                pontosPoligono.get(i);
+
+            Ponto fim =
+                pontosPoligono.get(
+                    (i + 1) % pontosPoligono.size()
+                );
+
+            List<Ponto> borda =
+                bresenham.rasterizar(
+                    inicio,
+                    fim
+                );
+
+            principal
+                .getPainel()
+                .desenharPixels(
+                    borda,
+                    cor
+                );
+        }
+    }
 
     private void desenharReta(Ponto inicio, Ponto fim) {
 
@@ -211,7 +366,6 @@ public class RasterizacaoController {
             );
     }
 
-
     private void desenharCirculo(
         Ponto centro,
         Ponto pontoRaio
@@ -248,7 +402,6 @@ public class RasterizacaoController {
             );
     }
 
-
     private String nomeAlgoritmo() {
 
         switch (algoritmoSelecionado) {
@@ -265,6 +418,9 @@ public class RasterizacaoController {
             case "BRESENHAM_CIRCULO":
                 return "Bresenham para circunferência";
 
+            case "POLIGONO_VARREDURA":
+                return "Varredura";
+
             default:
                 return "";
         }
@@ -272,14 +428,14 @@ public class RasterizacaoController {
 
     private Color gerarCorAleatoria() {
 
-    int vermelho = random.nextInt(200);
-    int verde = random.nextInt(200);
-    int azul = random.nextInt(200);
+        int vermelho = random.nextInt(200);
+        int verde = random.nextInt(200);
+        int azul = random.nextInt(200);
 
-    return new Color(
-        vermelho,
-        verde,
-        azul
-    );
-}
+        return new Color(
+            vermelho,
+            verde,
+            azul
+        );
+    }
 }
