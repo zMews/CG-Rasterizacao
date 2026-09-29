@@ -11,6 +11,8 @@ import view.Principal;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
+import java.awt.Color;
+import java.util.Random;
 
 public class RasterizacaoController {
 
@@ -201,7 +203,10 @@ public class RasterizacaoController {
 
         principal
             .getPainel()
-            .desenharPixels(pixels);
+            .desenharPixels(
+                pixels,
+                gerarCorAleatoria()
+            );
     }
 
 
@@ -235,7 +240,10 @@ public class RasterizacaoController {
 
         principal
             .getPainel()
-            .desenharPixels(pixels);
+            .desenharPixels(
+                pixels,
+                gerarCorAleatoria()
+            );
     }
 
 
@@ -259,4 +267,17 @@ public class RasterizacaoController {
                 return "";
         }
     }
+
+    private Color gerarCorAleatoria() {
+
+    int vermelho = random.nextInt(200);
+    int verde = random.nextInt(200);
+    int azul = random.nextInt(200);
+
+    return new Color(
+        vermelho,
+        verde,
+        azul
+    );
+}
 }

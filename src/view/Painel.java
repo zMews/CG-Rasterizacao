@@ -25,30 +25,31 @@ public class Painel extends JPanel {
         limpar();
     }
 
-    public void desenharPixels(List<Ponto> pixels) {
+    public void desenharPixels(List<Ponto> pixels, Color cor) {
 
         for (Ponto ponto : pixels) {
             colocarPixel(
-                    ponto.getX(),
-                    ponto.getY()
+                ponto.getX(),
+                ponto.getY(),
+                cor
             );
         }
 
         repaint();
     }
 
-    private void colocarPixel(int x, int y) {
+    private void colocarPixel(int x, int y, Color cor) {
 
-        if (x >= 0 &&
-            x < imagem.getWidth() &&
-            y >= 0 &&
-            y < imagem.getHeight()) {
+    if (x >= 0 &&
+        x < imagem.getWidth() &&
+        y >= 0 &&
+        y < imagem.getHeight()) {
 
-            imagem.setRGB(
-                    x,
-                    y,
-                    Color.BLACK.getRGB()
-            );
+        imagem.setRGB(
+            x,
+            y,
+            cor.getRGB()
+        );
         }
     }
 
