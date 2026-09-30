@@ -7,16 +7,22 @@ import model.Rasterizacao;
 import model.RetaAnalitica;
 import model.RetaBresenham;
 import model.RetaDDA;
+import model.Transformacoes;
 import view.Principal;
 
 import java.awt.Color;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import javax.swing.AbstractAction;
+import javax.swing.JComponent;
 import javax.swing.JOptionPane;
+import javax.swing.KeyStroke;
 
 public class RasterizacaoController {
 
@@ -26,17 +32,26 @@ public class RasterizacaoController {
 
     private String algoritmoSelecionado;
 
+    private String transformacaoSelecionada;
+
     private Ponto primeiroPonto;
 
     private List<Ponto> pontosPoligono = new ArrayList<>();
 
+    private List<Ponto> ultimoPoligono = new ArrayList<>();
+
     private int quantidadePontosPoligono;
+
+    private Color corUltimoPoligono;
+
+    private Transformacoes transformacoes = new Transformacoes();
 
     public RasterizacaoController(Principal principal) {
 
         this.principal = principal;
 
         configurarEventos();
+        configurarTeclado();
     }
 
     private void configurarEventos() {
@@ -132,12 +147,42 @@ public class RasterizacaoController {
             }
         });
 
+        principal.getItemTranslacao().addActionListener(e -> {
+
+            transformacaoSelecionada = "TRANSLACAO";
+
+            principal.setMensagem(
+                "Translação selecionada - use ← para retornar e → para avançar."
+            );
+        });
+
+        principal.getItemEscala().addActionListener(e -> {
+
+            transformacaoSelecionada = "ESCALA";
+
+            principal.setMensagem(
+                "Escala selecionada - use ← para diminuir e → para aumentar."
+            );
+        });
+
+        principal.getItemRotacao().addActionListener(e -> {
+
+            transformacaoSelecionada = "ROTACAO";
+
+            principal.setMensagem(
+                "Rotação selecionada - use ← para rotacionar -10° e → para +10°."
+            );
+        });
+
         principal.getBotaoLimpar().addActionListener(e -> {
 
             principal.getPainel().limpar();
 
             primeiroPonto = null;
             pontosPoligono.clear();
+            ultimoPoligono.clear();
+
+            transformacaoSelecionada = null;
 
             if (algoritmoSelecionado == null) {
 
@@ -179,6 +224,185 @@ public class RasterizacaoController {
                 );
             }
         });
+    }
+
+    private void configurarTeclado() {
+
+        principal.getRootPane()
+            .getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+            .put(
+                KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0),
+                "esquerda"
+            );
+
+        principal.getRootPane()
+            .getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+            .put(
+                KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0),
+                "direita"
+            );
+
+        principal.getRootPane()
+            .getActionMap()
+            .put(
+                "esquerda",
+                new AbstractAction() {
+
+                    private static final long serialVersionUID = 1;
+
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        executarTransformacao(-1);
+                    }
+                }
+            );
+
+        principal.getRootPane()
+            .getActionMap()
+            .put(
+                "direita",
+                new AbstractAction() {
+
+                    private static final long serialVersionUID = 1;
+
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        executarTransformacao(1);
+                    }
+                }
+            );
+    }
+
+    private void executarTransformacao(int direcao) {
+
+        if (transformacaoSelecionada == null) {
+
+            principal.setMensagem(
+                "Selecione uma transformação."
+            );
+
+            return;
+        }
+
+        if (ultimoPoligono.isEmpty()) {
+
+            principal.setMensagem(
+                "Desenhe um polígono antes de aplicar uma transformação."
+            );
+
+            return;
+        }
+
+        switch (transformacaoSelecionada) {
+
+            case "TRANSLACAO":
+
+                ultimoPoligono =
+                    transformacoes.transladar(
+                        ultimoPoligono,
+                        direcao * 10
+                    );
+
+                break;
+
+            case "ESCALA":
+
+                double fator;
+
+                if (direcao > 0) {
+                    fator = 1.1;
+                } else {
+                    fator = 1.0 / 1.1;
+                }
+
+                ultimoPoligono =
+                    transformacoes.escalar(
+                        ultimoPoligono,
+                        fator
+                    );
+
+                break;
+
+            case "ROTACAO":
+
+                ultimoPoligono =
+                    transformacoes.rotacionar(
+                        ultimoPoligono,
+                        direcao * 10
+                    );
+
+                break;
+        }
+
+        redesenharPoligonoTransformado();
+    }
+
+    private void redesenharPoligonoTransformado() {
+
+        principal.getPainel().limpar();
+
+        PoligonoVarredura varredura =
+            new PoligonoVarredura();
+
+        List<Ponto> preenchimento =
+            varredura.preencher(
+                ultimoPoligono
+            );
+
+        principal
+            .getPainel()
+            .desenharPixels(
+                preenchimento,
+                corUltimoPoligono
+            );
+
+        RetaBresenham bresenham =
+            new RetaBresenham();
+
+        for (int i = 0; i < ultimoPoligono.size(); i++) {
+
+            Ponto inicio =
+                ultimoPoligono.get(i);
+
+            Ponto fim =
+                ultimoPoligono.get(
+                    (i + 1) % ultimoPoligono.size()
+                );
+
+            List<Ponto> borda =
+                bresenham.rasterizar(
+                    inicio,
+                    fim
+                );
+
+            principal
+                .getPainel()
+                .desenharPixels(
+                    borda,
+                    corUltimoPoligono
+                );
+        }
+
+        switch (transformacaoSelecionada) {
+
+            case "TRANSLACAO":
+                principal.setMensagem(
+                    "Translação ativa - use ← ou →."
+                );
+                break;
+
+            case "ESCALA":
+                principal.setMensagem(
+                    "Escala ativa - use ← para diminuir ou → para aumentar."
+                );
+                break;
+
+            case "ROTACAO":
+                principal.setMensagem(
+                    "Rotação ativa - use ← para -10° ou → para +10°."
+                );
+                break;
+        }
     }
 
     private void tratarClique(int x, int y) {
@@ -277,9 +501,7 @@ public class RasterizacaoController {
         pontosPoligono.clear();
 
         principal.setMensagem(
-            "Polígono preenchido por Varredura - clique no ponto 1 de "
-            + quantidadePontosPoligono +
-            " para desenhar outro."
+            "Polígono preenchido por Varredura - selecione uma transformação ou desenhe outro."
         );
     }
 
@@ -328,6 +550,11 @@ public class RasterizacaoController {
                     cor
                 );
         }
+
+        ultimoPoligono =
+            new ArrayList<>(pontosPoligono);
+
+        corUltimoPoligono = cor;
     }
 
     private void desenharReta(Ponto inicio, Ponto fim) {

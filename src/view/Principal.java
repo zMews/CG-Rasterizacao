@@ -13,10 +13,14 @@ public class Principal extends JFrame {
     private JMenuItem itemDDA;
     private JMenuItem itemBresenhamReta;
     private JMenuItem itemBresenhamCirculo;
+    private JMenuItem itemVarredura;
+
+    private JMenuItem itemTranslacao;
+    private JMenuItem itemEscala;
+    private JMenuItem itemRotacao;
 
     private JLabel mensagem;
     private JButton botaoLimpar;
-    private JMenuItem itemVarredura;
 
     public Principal() {
 
@@ -72,10 +76,28 @@ public class Principal extends JFrame {
 
         menuCirculos.add(itemBresenhamCirculo);
 
+        JMenu menuPoligonos = new JMenu("Polígonos");
+
+        itemVarredura = new JMenuItem("Varredura");
+
+        menuPoligonos.add(itemVarredura);
+
         menuPrimitivas.add(menuLinhas);
         menuPrimitivas.add(menuCirculos);
+        menuPrimitivas.add(menuPoligonos);
+
+        JMenu menuTransformacoes = new JMenu("Transformações");
+
+        itemTranslacao = new JMenuItem("Translação");
+        itemEscala = new JMenuItem("Escala");
+        itemRotacao = new JMenuItem("Rotação");
+
+        menuTransformacoes.add(itemTranslacao);
+        menuTransformacoes.add(itemEscala);
+        menuTransformacoes.add(itemRotacao);
 
         barraMenu.add(menuPrimitivas);
+        barraMenu.add(menuTransformacoes);
 
         barraMenu.add(
             Box.createHorizontalStrut(20)
@@ -86,14 +108,6 @@ public class Principal extends JFrame {
         barraMenu.add(botaoLimpar);
 
         setJMenuBar(barraMenu);
-
-        JMenu menuPoligonos = new JMenu("Polígonos");
-
-        itemVarredura = new JMenuItem("Varredura");
-
-        menuPoligonos.add(itemVarredura);
-
-        menuPrimitivas.add(menuPoligonos);
     }
 
     public Painel getPainel() {
@@ -116,15 +130,27 @@ public class Principal extends JFrame {
         return itemBresenhamCirculo;
     }
 
+    public JMenuItem getItemVarredura() {
+        return itemVarredura;
+    }
+
+    public JMenuItem getItemTranslacao() {
+        return itemTranslacao;
+    }
+
+    public JMenuItem getItemEscala() {
+        return itemEscala;
+    }
+
+    public JMenuItem getItemRotacao() {
+        return itemRotacao;
+    }
+
     public JButton getBotaoLimpar() {
         return botaoLimpar;
     }
 
     public void setMensagem(String texto) {
         mensagem.setText(texto);
-    }
-
-    public JMenuItem getItemVarredura() {
-    return itemVarredura;
     }
 }
