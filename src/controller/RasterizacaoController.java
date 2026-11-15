@@ -1,6 +1,10 @@
+
 package controller;
 
 import model.CirculoBresenham;
+import model.CohenSutherland;
+import model.CurvaBezier;
+import model.CurvaBSpline;
 import model.PoligonoVarredura;
 import model.Ponto;
 import model.Rasterizacao;
@@ -46,6 +50,14 @@ public class RasterizacaoController {
 
     private Transformacoes transformacoes = new Transformacoes();
 
+    private Ponto primeiroPontoRecorte;
+
+    private List<Ponto[]> segmentosRecorte = new ArrayList<>();
+
+    private List<Ponto> pontosCurva = new ArrayList<>();
+
+    private int quantidadePontosCurva;
+
     public RasterizacaoController(Principal principal) {
 
         this.principal = principal;
@@ -58,9 +70,7 @@ public class RasterizacaoController {
 
         principal.getItemAnalitico().addActionListener(e -> {
 
-            algoritmoSelecionado = "ANALITICO";
-            primeiroPonto = null;
-            pontosPoligono.clear();
+            selecionarAlgoritmo("ANALITICO");
 
             principal.setMensagem(
                 "Algoritmo Analítico selecionado - clique no primeiro ponto."
@@ -69,9 +79,7 @@ public class RasterizacaoController {
 
         principal.getItemDDA().addActionListener(e -> {
 
-            algoritmoSelecionado = "DDA";
-            primeiroPonto = null;
-            pontosPoligono.clear();
+            selecionarAlgoritmo("DDA");
 
             principal.setMensagem(
                 "Algoritmo DDA selecionado - clique no primeiro ponto."
@@ -80,9 +88,7 @@ public class RasterizacaoController {
 
         principal.getItemBresenhamReta().addActionListener(e -> {
 
-            algoritmoSelecionado = "BRESENHAM_RETA";
-            primeiroPonto = null;
-            pontosPoligono.clear();
+            selecionarAlgoritmo("BRESENHAM_RETA");
 
             principal.setMensagem(
                 "Bresenham para reta selecionado - clique no primeiro ponto."
@@ -91,9 +97,7 @@ public class RasterizacaoController {
 
         principal.getItemBresenhamCirculo().addActionListener(e -> {
 
-            algoritmoSelecionado = "BRESENHAM_CIRCULO";
-            primeiroPonto = null;
-            pontosPoligono.clear();
+            selecionarAlgoritmo("BRESENHAM_CIRCULO");
 
             principal.setMensagem(
                 "Bresenham para circunferência selecionado - clique no centro."
@@ -115,7 +119,7 @@ public class RasterizacaoController {
 
             try {
 
-                int quantidade = Integer.parseInt(entrada);
+                int quantidade = Integer.parseInt(entrada.trim());
 
                 if (quantidade < 3) {
 
@@ -127,11 +131,9 @@ public class RasterizacaoController {
                     return;
                 }
 
-                algoritmoSelecionado = "POLIGONO_VARREDURA";
-                quantidadePontosPoligono = quantidade;
+                selecionarAlgoritmo("POLIGONO_VARREDURA");
 
-                primeiroPonto = null;
-                pontosPoligono.clear();
+                quantidadePontosPoligono = quantidade;
 
                 principal.setMensagem(
                     "Varredura selecionada - clique no ponto 1 de "
@@ -145,6 +147,16 @@ public class RasterizacaoController {
                     "Digite um número inteiro válido."
                 );
             }
+        });
+
+        principal.getItemBezier().addActionListener(e -> {
+
+            configurarCurva("BEZIER", 2);
+        });
+
+        principal.getItemBSpline().addActionListener(e -> {
+
+            configurarCurva("BSPLINE", 4);
         });
 
         principal.getItemTranslacao().addActionListener(e -> {
@@ -174,13 +186,28 @@ public class RasterizacaoController {
             );
         });
 
+        principal.getItemCohenSutherland().addActionListener(e -> {
+
+            selecionarAlgoritmo("COHEN_SUTHERLAND");
+
+            gerarElementosRecorte();
+
+            principal.setMensagem(
+                "Cohen-Sutherland selecionado - clique no primeiro canto do retângulo de recorte."
+            );
+        });
+
         principal.getBotaoLimpar().addActionListener(e -> {
 
             principal.getPainel().limpar();
 
             primeiroPonto = null;
+            primeiroPontoRecorte = null;
+
             pontosPoligono.clear();
             ultimoPoligono.clear();
+            segmentosRecorte.clear();
+            pontosCurva.clear();
 
             transformacaoSelecionada = null;
 
@@ -204,6 +231,23 @@ public class RasterizacaoController {
                     + quantidadePontosPoligono + "."
                 );
 
+            } else if (algoritmoSelecionado.equals("COHEN_SUTHERLAND")) {
+
+                algoritmoSelecionado = null;
+
+                principal.setMensagem(
+                    "Tela limpa - selecione Cohen-Sutherland novamente para iniciar o recorte."
+                );
+
+            } else if (algoritmoSelecionado.equals("BEZIER") ||
+                       algoritmoSelecionado.equals("BSPLINE")) {
+
+                principal.setMensagem(
+                    "Tela limpa - " + nomeAlgoritmo() +
+                    " selecionada. Clique no ponto 1 de " +
+                    quantidadePontosCurva + "."
+                );
+
             } else {
 
                 principal.setMensagem(
@@ -224,6 +268,66 @@ public class RasterizacaoController {
                 );
             }
         });
+    }
+
+    private void selecionarAlgoritmo(String algoritmo) {
+
+        algoritmoSelecionado = algoritmo;
+
+        primeiroPonto = null;
+        primeiroPontoRecorte = null;
+
+        pontosPoligono.clear();
+        pontosCurva.clear();
+
+        transformacaoSelecionada = null;
+    }
+
+    private void configurarCurva(String algoritmo, int minimo) {
+
+        String entrada = JOptionPane.showInputDialog(
+            principal,
+            "Informe a quantidade de pontos de controle:",
+            "Curvas",
+            JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (entrada == null) {
+            return;
+        }
+
+        try {
+
+            int quantidade = Integer.parseInt(entrada.trim());
+
+            if (quantidade < minimo) {
+
+                JOptionPane.showMessageDialog(
+                    principal,
+                    "A curva deve possuir pelo menos " +
+                    minimo + " pontos de controle."
+                );
+
+                return;
+            }
+
+            selecionarAlgoritmo(algoritmo);
+
+            quantidadePontosCurva = quantidade;
+
+            principal.setMensagem(
+                nomeAlgoritmo() +
+                " selecionada - clique no ponto 1 de " +
+                quantidadePontosCurva + "."
+            );
+
+        } catch (NumberFormatException ex) {
+
+            JOptionPane.showMessageDialog(
+                principal,
+                "Digite um número inteiro válido."
+            );
+        }
     }
 
     private void configurarTeclado() {
@@ -276,11 +380,6 @@ public class RasterizacaoController {
     private void executarTransformacao(int direcao) {
 
         if (transformacaoSelecionada == null) {
-
-            principal.setMensagem(
-                "Selecione uma transformação."
-            );
-
             return;
         }
 
@@ -386,21 +485,27 @@ public class RasterizacaoController {
         switch (transformacaoSelecionada) {
 
             case "TRANSLACAO":
+
                 principal.setMensagem(
                     "Translação ativa - use ← ou →."
                 );
+
                 break;
 
             case "ESCALA":
+
                 principal.setMensagem(
                     "Escala ativa - use ← para diminuir ou → para aumentar."
                 );
+
                 break;
 
             case "ROTACAO":
+
                 principal.setMensagem(
                     "Rotação ativa - use ← para -10° ou → para +10°."
                 );
+
                 break;
         }
     }
@@ -416,9 +521,24 @@ public class RasterizacaoController {
             return;
         }
 
+        if (algoritmoSelecionado.equals("COHEN_SUTHERLAND")) {
+
+            tratarCliqueRecorte(x, y);
+
+            return;
+        }
+
         if (algoritmoSelecionado.equals("POLIGONO_VARREDURA")) {
 
             tratarCliquePoligono(x, y);
+
+            return;
+        }
+
+        if (algoritmoSelecionado.equals("BEZIER") ||
+            algoritmoSelecionado.equals("BSPLINE")) {
+
+            tratarCliqueCurva(x, y);
 
             return;
         }
@@ -473,6 +593,94 @@ public class RasterizacaoController {
         );
     }
 
+    private void tratarCliqueCurva(int x, int y) {
+
+        pontosCurva.add(
+            new Ponto(x, y)
+        );
+
+        int quantidadeAtual = pontosCurva.size();
+
+        if (quantidadeAtual < quantidadePontosCurva) {
+
+            principal.setMensagem(
+                nomeAlgoritmo() +
+                " - ponto " +
+                quantidadeAtual +
+                " definido. Clique no ponto " +
+                (quantidadeAtual + 1) +
+                " de " +
+                quantidadePontosCurva + "."
+            );
+
+            return;
+        }
+
+        desenharCurva();
+
+        pontosCurva.clear();
+
+        principal.setMensagem(
+            nomeAlgoritmo() +
+            " - curva concluída. Clique no ponto 1 de " +
+            quantidadePontosCurva +
+            " para desenhar novamente."
+        );
+    }
+
+    private void desenharCurva() {
+
+        List<Ponto> pontos;
+
+        if (algoritmoSelecionado.equals("BEZIER")) {
+
+            CurvaBezier algoritmo =
+                new CurvaBezier();
+
+            pontos = algoritmo.rasterizar(
+                pontosCurva
+            );
+
+        } else {
+
+            CurvaBSpline algoritmo =
+                new CurvaBSpline();
+
+            pontos = algoritmo.rasterizar(
+                pontosCurva
+            );
+        }
+
+        if (pontos.isEmpty()) {
+            return;
+        }
+
+        List<Ponto> pixels = new ArrayList<>();
+
+        RetaBresenham bresenham =
+            new RetaBresenham();
+
+        pixels.add(pontos.get(0));
+
+        for (int i = 1; i < pontos.size(); i++) {
+
+            List<Ponto> segmento =
+                bresenham.rasterizar(
+                    pontos.get(i - 1),
+                    pontos.get(i)
+                );
+
+            pixels.addAll(segmento);
+        }
+
+        principal
+            .getPainel()
+            .desenharPixels(
+                pixels,
+                gerarCorAleatoria()
+            );
+    }
+
     private void tratarCliquePoligono(int x, int y) {
 
         pontosPoligono.add(
@@ -489,8 +697,7 @@ public class RasterizacaoController {
                 " definido. Clique no ponto " +
                 (quantidadeAtual + 1) +
                 " de " +
-                quantidadePontosPoligono +
-                "."
+                quantidadePontosPoligono + "."
             );
 
             return;
@@ -629,7 +836,267 @@ public class RasterizacaoController {
             );
     }
 
+    private void gerarElementosRecorte() {
+
+        principal.getPainel().limpar();
+
+        segmentosRecorte.clear();
+
+        segmentosRecorte.add(
+            new Ponto[] {
+                new Ponto(100, 100),
+                new Ponto(800, 500)
+            }
+        );
+
+        segmentosRecorte.add(
+            new Ponto[] {
+                new Ponto(50, 300),
+                new Ponto(850, 300)
+            }
+        );
+
+        segmentosRecorte.add(
+            new Ponto[] {
+                new Ponto(250, 50),
+                new Ponto(250, 550)
+            }
+        );
+
+        segmentosRecorte.add(
+            new Ponto[] {
+                new Ponto(600, 80),
+                new Ponto(820, 180)
+            }
+        );
+
+        segmentosRecorte.add(
+            new Ponto[] {
+                new Ponto(100, 500),
+                new Ponto(400, 400)
+            }
+        );
+
+        Ponto p1 = new Ponto(480, 130);
+        Ponto p2 = new Ponto(720, 160);
+        Ponto p3 = new Ponto(760, 430);
+        Ponto p4 = new Ponto(500, 460);
+
+        segmentosRecorte.add(
+            new Ponto[] { p1, p2 }
+        );
+
+        segmentosRecorte.add(
+            new Ponto[] { p2, p3 }
+        );
+
+        segmentosRecorte.add(
+            new Ponto[] { p3, p4 }
+        );
+
+        segmentosRecorte.add(
+            new Ponto[] { p4, p1 }
+        );
+
+        RetaBresenham bresenham =
+            new RetaBresenham();
+
+        for (Ponto[] segmento : segmentosRecorte) {
+
+            List<Ponto> pixels =
+                bresenham.rasterizar(
+                    segmento[0],
+                    segmento[1]
+                );
+
+            principal
+                .getPainel()
+                .desenharPixels(
+                    pixels,
+                    Color.GRAY
+                );
+        }
+    }
+
+    private void tratarCliqueRecorte(int x, int y) {
+
+        Ponto pontoAtual =
+            new Ponto(x, y);
+
+        if (primeiroPontoRecorte == null) {
+
+            primeiroPontoRecorte =
+                pontoAtual;
+
+            principal.setMensagem(
+                "Primeiro canto definido em (" +
+                x + ", " + y +
+                "). Clique no canto oposto."
+            );
+
+            return;
+        }
+
+        int xMin =
+            Math.min(
+                primeiroPontoRecorte.getX(),
+                pontoAtual.getX()
+            );
+
+        int xMax =
+            Math.max(
+                primeiroPontoRecorte.getX(),
+                pontoAtual.getX()
+            );
+
+        int yMin =
+            Math.min(
+                primeiroPontoRecorte.getY(),
+                pontoAtual.getY()
+            );
+
+        int yMax =
+            Math.max(
+                primeiroPontoRecorte.getY(),
+                pontoAtual.getY()
+            );
+
+        executarRecorte(
+            xMin,
+            yMin,
+            xMax,
+            yMax
+        );
+
+        primeiroPontoRecorte = null;
+
+        principal.setMensagem(
+            "Recorte concluído - clique em dois novos pontos para definir outra janela de recorte."
+        );
+    }
+
+    private void executarRecorte(
+        int xMin,
+        int yMin,
+        int xMax,
+        int yMax
+    ) {
+
+        principal.getPainel().limpar();
+
+        CohenSutherland cohen =
+            new CohenSutherland();
+
+        RetaBresenham bresenham =
+            new RetaBresenham();
+
+        Color corRecorte =
+            gerarCorAleatoria();
+
+        for (Ponto[] segmento : segmentosRecorte) {
+
+            List<Ponto> resultado =
+                cohen.recortar(
+                    segmento[0],
+                    segmento[1],
+                    xMin,
+                    yMin,
+                    xMax,
+                    yMax
+                );
+
+            if (resultado.size() == 2) {
+
+                List<Ponto> pixels =
+                    bresenham.rasterizar(
+                        resultado.get(0),
+                        resultado.get(1)
+                    );
+
+                principal
+                    .getPainel()
+                    .desenharPixels(
+                        pixels,
+                        corRecorte
+                    );
+            }
+        }
+
+        desenharRetanguloRecorte(
+            xMin,
+            yMin,
+            xMax,
+            yMax
+        );
+    }
+
+    private void desenharRetanguloRecorte(
+        int xMin,
+        int yMin,
+        int xMax,
+        int yMax
+    ) {
+
+        RetaBresenham bresenham =
+            new RetaBresenham();
+
+        Ponto superiorEsquerdo =
+            new Ponto(xMin, yMin);
+
+        Ponto superiorDireito =
+            new Ponto(xMax, yMin);
+
+        Ponto inferiorDireito =
+            new Ponto(xMax, yMax);
+
+        Ponto inferiorEsquerdo =
+            new Ponto(xMin, yMax);
+
+        Ponto[][] lados = {
+
+            {
+                superiorEsquerdo,
+                superiorDireito
+            },
+
+            {
+                superiorDireito,
+                inferiorDireito
+            },
+
+            {
+                inferiorDireito,
+                inferiorEsquerdo
+            },
+
+            {
+                inferiorEsquerdo,
+                superiorEsquerdo
+            }
+        };
+
+        for (Ponto[] lado : lados) {
+
+            List<Ponto> pixels =
+                bresenham.rasterizar(
+                    lado[0],
+                    lado[1]
+                );
+
+            principal
+                .getPainel()
+                .desenharPixels(
+                    pixels,
+                    Color.BLACK
+                );
+        }
+    }
+
     private String nomeAlgoritmo() {
+
+        if (algoritmoSelecionado == null) {
+            return "";
+        }
 
         switch (algoritmoSelecionado) {
 
@@ -647,6 +1114,15 @@ public class RasterizacaoController {
 
             case "POLIGONO_VARREDURA":
                 return "Varredura";
+
+            case "COHEN_SUTHERLAND":
+                return "Cohen-Sutherland";
+
+            case "BEZIER":
+                return "Bézier";
+
+            case "BSPLINE":
+                return "B-Spline";
 
             default:
                 return "";

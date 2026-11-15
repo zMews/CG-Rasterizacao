@@ -1,3 +1,4 @@
+
 package view;
 
 import javax.swing.*;
@@ -14,6 +15,11 @@ public class Principal extends JFrame {
     private JMenuItem itemBresenhamReta;
     private JMenuItem itemBresenhamCirculo;
     private JMenuItem itemVarredura;
+
+    private JMenuItem itemCohenSutherland;
+
+    private JMenuItem itemBezier;
+    private JMenuItem itemBSpline;
 
     private JMenuItem itemTranslacao;
     private JMenuItem itemEscala;
@@ -82,9 +88,24 @@ public class Principal extends JFrame {
 
         menuPoligonos.add(itemVarredura);
 
+        JMenu menuRecorte = new JMenu("Recorte");
+
+        itemCohenSutherland = new JMenuItem("Cohen-Sutherland");
+
+        menuRecorte.add(itemCohenSutherland);
+
         menuPrimitivas.add(menuLinhas);
         menuPrimitivas.add(menuCirculos);
         menuPrimitivas.add(menuPoligonos);
+        menuPrimitivas.add(menuRecorte);
+
+        JMenu menuCurvas = new JMenu("Curvas");
+
+        itemBezier = new JMenuItem("Bézier");
+        itemBSpline = new JMenuItem("B-Spline");
+
+        menuCurvas.add(itemBezier);
+        menuCurvas.add(itemBSpline);
 
         JMenu menuTransformacoes = new JMenu("Transformações");
 
@@ -97,6 +118,7 @@ public class Principal extends JFrame {
         menuTransformacoes.add(itemRotacao);
 
         barraMenu.add(menuPrimitivas);
+        barraMenu.add(menuCurvas);
         barraMenu.add(menuTransformacoes);
 
         barraMenu.add(
@@ -132,6 +154,18 @@ public class Principal extends JFrame {
 
     public JMenuItem getItemVarredura() {
         return itemVarredura;
+    }
+
+    public JMenuItem getItemCohenSutherland() {
+        return itemCohenSutherland;
+    }
+
+    public JMenuItem getItemBezier() {
+        return itemBezier;
+    }
+
+    public JMenuItem getItemBSpline() {
+        return itemBSpline;
     }
 
     public JMenuItem getItemTranslacao() {
