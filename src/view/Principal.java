@@ -16,6 +16,8 @@ public class Principal extends JFrame {
     private JMenuItem itemBresenhamCirculo;
     private JMenuItem itemVarredura;
 
+    private JMenuItem itemCohenSutherland;
+
     private JMenuItem itemBezier;
     private JMenuItem itemBSpline;
 
@@ -86,9 +88,16 @@ public class Principal extends JFrame {
 
         menuPoligonos.add(itemVarredura);
 
+        JMenu menuRecorte = new JMenu("Recorte");
+
+        itemCohenSutherland = new JMenuItem("Cohen-Sutherland");
+
+        menuRecorte.add(itemCohenSutherland);
+
         menuPrimitivas.add(menuLinhas);
         menuPrimitivas.add(menuCirculos);
         menuPrimitivas.add(menuPoligonos);
+        menuPrimitivas.add(menuRecorte);
 
         JMenu menuCurvas = new JMenu("Curvas");
 
@@ -145,6 +154,10 @@ public class Principal extends JFrame {
 
     public JMenuItem getItemVarredura() {
         return itemVarredura;
+    }
+
+    public JMenuItem getItemCohenSutherland() {
+        return itemCohenSutherland;
     }
 
     public JMenuItem getItemBezier() {
